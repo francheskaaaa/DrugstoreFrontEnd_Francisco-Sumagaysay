@@ -1,0 +1,42 @@
+
+import React from "react";
+
+const Sidebar = ({ activePage, onNavigate }) => {
+  const menuItems = [
+    { name: "Home", icon: "fa-home" },
+    { name: "Inventory", icon: "fa-boxes" },
+      { name: 'Product', icon: 'fa-capsules' },
+        { name: 'Customer', icon: 'fa-users' },
+        { name: 'Sales', icon: 'fa-chart-line' },
+        { name: 'Supplier', icon: 'fa-truck' },
+        { name: 'User', icon: 'fa-user' },
+        { name: 'Report', icon: 'fa-file-alt' },
+        { name: 'Audit Log', icon: 'fa-clipboard-list' },
+        { name: 'Logout', icon: 'fa-sign-out-alt' },
+  ];
+
+  return (
+    <div className="w-1/5 bg-gradient-to-b from-blue-500 to-purple-700 text-white p-4">
+      <div className="text-2xl font-bold mb-8">Diane's Pharmacy</div>
+      <ul>
+        {menuItems.map((item) => (
+          <li key={item.name} className="mb-4">
+            <button
+              onClick={() => onNavigate(item.name)} // Dynamic navigation
+              className={`flex items-center p-2 w-full rounded-lg ${
+                activePage === item.name
+                  ? "bg-white text-blue-500"
+                  : "hover:bg-blue-400 hover:text-white"
+              } transform hover:scale-105 transition-all duration-300`}
+            >
+              <i className={`fas ${item.icon} mr-2`} />
+              {item.name}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default Sidebar;

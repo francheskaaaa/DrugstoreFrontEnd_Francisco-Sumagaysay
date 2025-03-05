@@ -1,7 +1,12 @@
 import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap styles
-import logo from './assets/logo-sub.png';
-import AuthHandler from "./utils/AuthHandler";
+import logo from '../assets/logo-sub.png';
+import AuthHandler from "../utils/AuthHandler";
+import Config from "../utils/Config";
+//import { Redirect } from "react-router-dom";
+import { Navigate } from "react-router-dom";
+
+
 class Login extends React.Component {
 
     state={
@@ -37,6 +42,7 @@ class Login extends React.Component {
         }
         else {
             this.setState({loginStatus:3})
+            window.location = Config.homeUrl;
         }
     };
 
@@ -56,6 +62,12 @@ class Login extends React.Component {
     }
 
     render() {
+
+        if(AuthHandler.loggedIn()){
+            return <Navigate to = {Config.homeUrl} />;
+        }
+
+        document.title = "Login";
         return (
             <div className="h-screen flex items-center justify-center bg-gray-100">
                 <div className="flex w-full max-w-4xl shadow-lg">

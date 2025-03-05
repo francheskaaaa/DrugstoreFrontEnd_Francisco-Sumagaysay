@@ -1,0 +1,31 @@
+import React, { Component } from "react";
+import Sidebar from "./Sidebar";
+import Home from "./Home";
+import Inventory from "../pages/Inventory";
+
+class MainComponent extends Component {
+  // Dynamically render based on the "page" prop
+  renderPage = () => {
+    const { page } = this.props;
+
+    switch (page) {
+      case "Home":
+        return <Home />;
+      case "Inventory":
+        return <Inventory />;
+      default:
+        return <div>404 - Page Not Found</div>;
+    }
+  };
+
+  render() {
+    return (
+      <React.Fragment>
+        <Sidebar activePage={this.props.page} /> {/* Pass active page */}
+        {this.renderPage()}
+      </React.Fragment>
+    );
+  }
+}
+
+export default MainComponent;
