@@ -82,6 +82,85 @@ class APIHandler {
         throw error; // Optional: Handle inventory save errors
     }
 }
+    // Fetch inventory data from the backend server
+async getInventoryData() {
+    // Ensure token validity before API call
+    await this.checkLogin();
+
+    try {
+        const response = await axios.get(Config.inventoryUrl, {
+            headers: {
+                Authorization: "Bearer " + AuthHandler.getLoginToken(),
+            },
+        });
+        console.log("Fetched inventory data:", response.data);
+        return response.data; // Return the inventory data
+    } catch (error) {
+        console.error("Error fetching inventory data:", error);
+
+        if (error.response) {
+            console.error("Response Data:", error.response.data); // Log specific API error
+        }
+
+        throw error; // Throw error to be handled by the caller
+    }
+}
+
+// APIHandler.js
+
+async deleteInventory(id) {
+    // Ensure token validity before calling the API
+    await this.checkLogin();
+
+    try {
+           const response = await axios.delete(`${Config.inventoryUrl}${id}/`, {
+       headers: {
+           Authorization: `Bearer ${AuthHandler.getLoginToken()}`,
+       },
+   });
+        console.log(`Inventory with ID ${id} deleted.`, response.data);
+        return response.data;
+    } catch (error) {
+        console.error("Error deleting inventory:", error);
+        throw error; // Optional: Rethrow error for further handling
+    }
+}
+    // Ensure the APIHandler has this function implemented as expected:
+async getProductList() {
+    await this.checkLogin(); // Ensure the token is valid
+    try {
+        const response = await axios.get(Config.productUrl, {
+            headers: {
+                Authorization: "Bearer " + AuthHandler.getLoginToken(),
+            },
+        });
+        console.log("Product List Response:", response.data); // Log the API response data
+        return response.data; // Return backend response
+    } catch (error) {
+        console.error("Error fetching product list:", error);
+        throw error;
+    }
+}
+
+async searchProductsByName(name) {
+        await this.checkLogin(); // Ensure the token is valid before making the request
+
+        try {
+            const response = await axios.get(Config.productUrl, {
+                params: { name }, // Pass `name` as a query parameter
+                headers: {
+                    Authorization: "Bearer " + AuthHandler.getLoginToken(), // Use token for secure requests
+                },
+            });
+            console.log("Product search results:", response.data);
+            return response.data; // Return the API response
+        } catch (error) {
+            console.error("Error searching products by name:", error);
+            throw error; // Pass the error to the caller for further handling
+        }
+    }
+
+
 }
 
 export default APIHandler;

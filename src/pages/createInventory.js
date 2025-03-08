@@ -1,37 +1,93 @@
 // createInventory.js
-import React, {useEffect, useRef, useMemo} from "react";
+import React, {useState, useEffect, useRef, useMemo, useCallback} from "react";
 import APIHandler from "../utils/APIHandler";
 
-const CreateInventory = ({isOpen, onClose}) => {
+const CreateInventory = ({isOpen, onClose, refreshInventory}) => {
     const formRef = useRef(null);
     const apiHandler = useMemo(() => new APIHandler(), []); // Memoize the handler instance
+
+    const [productName, setProductName] = useState(""); // User's input in the product name field
+    const [productOptions, setProductOptions] = useState([]); // Dropdown options
+    const [selectedProductID, setSelectedProductID] = useState(null); // Selected product ID
+
+    // Fetch product list based on user input
+   const handleProductSearch = useCallback(
+        async (event) => {
+            const searchValue = event.target.value;
+            setProductName(searchValue); // Update the state for the input field
+
+            if (searchValue.length > 2) {
+                // Trigger search only for input longer than 2 characters
+                try {
+                    const searchResults = await apiHandler.searchProductsByName(searchValue); // Call APIHandler
+                    const options = (searchResults.data || []).map((item) => ({
+                        product_id: item.product_id,
+                        product_name: item.product_name,
+                    })); // Map results to dropdown format
+                    setProductOptions(options); // Update dropdown options
+                } catch (error) {
+                    console.error("Error fetching products:", error);
+                }
+            } else {
+                setProductOptions([]); // Clear options if search text is too short
+            }
+        },
+        [apiHandler]
+    );
+    // Handle dropdown selection
+    const handleProductSelect = (product) => {
+        setSelectedProductID(product.product_id); // Set the selected product ID
+        setProductName(product.product_name); // Display the product name in the input
+        setProductOptions([]); // Clear dropdown after selection
+    };
+
+
+
     // Handle form submission
     const formSubmit = async (event) => {
-    event.preventDefault(); // Prevent default behavior
-    console.log("Form submitted!");
+        event.preventDefault(); // Prevent default form submission behavior
+        console.log("Form submitted!");
 
-    // Collect input values using FormData
-    const formData = new FormData(formRef.current);
-    const values = Object.fromEntries(formData.entries()); // Converts to a plain object
+        if (!selectedProductID) {
+            alert("Please select a product from the dropdown.");
+            return;
+        }
 
-    console.log("Extracted Form Data:", values);
+        // Collect input values using FormData
+        const formData = new FormData(formRef.current);
+        const values = Object.fromEntries(formData.entries()); // Converts to a plain object
 
-    // Perform the API call with properly mapped fields
-    try {
-        await apiHandler.saveInventoryData(
-            values.product_id,
-            values.batch_number,
-            values.purchase_order_id,
-            values.stock_in,
-            values.stock_out,
-            values.expiration_date,
-            values.stock_available // Correctly named and mapped
-        );
-        alert("Inventory saved successfully!");
-    } catch (error) {
-        console.error("Error while saving inventory data:", error);
-    }
-};
+        console.log("Extracted Form Data:", values);
+
+        try {
+            // Call the API to save inventory data
+            await apiHandler.saveInventoryData(selectedProductID,
+                values.product_id,
+                values.batch_number,
+                values.purchase_order_id,
+                values.stock_in,
+                values.stock_out,
+                values.expiration_date,
+                values.stock_available
+            );
+
+            // Inform the user of success
+            alert("Inventory saved successfully!");
+
+            if (refreshInventory) {
+                await refreshInventory();
+            }
+
+
+            // Close the modal after successfully saving
+            onClose();
+        } catch (error) {
+            console.error("Error while saving inventory data:", error);
+        }
+    };
+    // Handle typing in the product name field
+
+
 
     // Log inputs when the modal opens and call checkLogin
     useEffect(() => {
@@ -83,6 +139,8 @@ const CreateInventory = ({isOpen, onClose}) => {
                                 type="number" min="0"
                                 id="product-id"
                                 name="product_id" // Added name attribute
+                                value={selectedProductID}
+                                readOnly={true}
                                 placeholder="Product ID"
                             />
                         </div>
@@ -90,17 +148,53 @@ const CreateInventory = ({isOpen, onClose}) => {
 
                     {/* Product Name */}
                     <div className="mb-6">
-                        <label className="block text-[#6B7280] mb-2" htmlFor="product-name">
+                        <label className="block text-[#6B7280] mb-2" htmlFor="productName">
                             Product Name
                         </label>
-                        <input
-                            className="w-full bg-[#E0E7EC] border-b-2 border-[#6B7280] focus:outline-none focus:border-[#3B82F6]"
-                            type="text"
-                            id="product-name"
-                            name="product_name" // Added name attribute
-                            placeholder="Product Name"
-                        />
+                        <div className="relative mb-6">
+                            <input
+                                //className="w-full bg-[#E0E7EC] border-b-2 border-[#6B7280] focus:outline-none focus:border-[#3B82F6]"
+                                type="text"
+                                id="productName"
+                                value={productName}
+                        onChange={handleProductSearch}
+                                className="w-full bg-[#E0E7EC] border-b-2 border-[#6B7280] focus:outline-none focus:border-[#3B82F6]"
+
+
+                                //onChange={handleProductInputChange}
+                               // placeholder="Type to search..."
+                                //className="w-full bg-[#E0E7EC] border border-gray-300 rounded p-2 focus:ring-purple-500 focus:border-purple-500"
+                                placeholder="Select a product"
+                           // onClick={() => fetchProductList()} // Reload products when focused
+
+                            />
+                            {productOptions.length > 0 && (
+                                <ul className="absolute bg-white border rounded shadow mt-1 w-full max-h-40 overflow-y-auto z-10">
+                                    {/*{productOptions.map((product,index) => (
+                                        <li
+                                            key={`${product.product_id}-${index}`}*/}
+
+                                    {productOptions.map((product) => (
+                                        <li
+                                            key={product.product_id}
+
+                                            className="p-2 cursor-pointer hover:bg-gray-100 text-black color-[#4B2354]"
+                                            onClick={() => {
+
+                                                //setProductName(product.product_name);
+                                               // setProductOptions([]);
+                                                handleProductSelect(product)
+
+                                            }}
+                                        >
+                                            {product.product_name}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                     </div>
+
 
                     {/* Batch Number / Purchase Order ID */}
                     <div className="flex space-x-4 mb-6">
@@ -202,6 +296,7 @@ const CreateInventory = ({isOpen, onClose}) => {
                         </button>
                         <button
                             type="submit"
+
                             className="bg-[#0F3D4B] text-white py-2 px-4 rounded-lg hover:bg-[#0C2F3A]"
                         >
                             Save
