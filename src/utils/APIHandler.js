@@ -107,6 +107,37 @@ async getInventoryData() {
 }
 
 // APIHandler.js
+    // Update Inventory Data
+async updateInventoryData(inventoryData) {
+    // Ensure token validity before updating
+    await this.checkLogin();
+
+    try {
+        // Debugging: Check the values being sent
+        console.log("Updating Inventory:", inventoryData);
+
+        const response = await axios.put(
+            `${Config.inventoryUrl}${inventoryData.inventory_id}/`, // Update URL with inventory ID
+            inventoryData, // Send all inventory data as payload
+            {
+                headers: {
+                    Authorization: `Bearer ${AuthHandler.getLoginToken()}`, // Token for authorization
+                },
+            }
+        );
+
+        console.log("Inventory updated successfully:", response.data);
+        return response;
+    } catch (error) {
+        console.error("Error updating inventory:", error);
+
+        if (error.response) {
+            console.error("API Error Response:", error.response.data);
+        }
+
+        throw error; // Throw error for the caller to handle
+    }
+}
 
 async deleteInventory(id) {
     // Ensure token validity before calling the API

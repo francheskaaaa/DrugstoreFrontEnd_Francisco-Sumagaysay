@@ -5,15 +5,16 @@ import DeleteConfirmation from "../components/DeleteConfirmation";
 import AdminDropdown from "../components/AdminDropdown";
 
 const Inventory = () => {
-    const [inventoryData, setInventoryData] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [inventoryData, setInventoryData] = useState([]); // Full inventory list
+    const [isLoading, setIsLoading] = useState(true); // Loader
+    const [isModalOpen, setModalOpen] = useState(false); // Modal for Create Inventory
+    const [selectedInventory, setSelectedInventory] = useState(null); // State to store selected inventory for editing
+    const [isEditing, setIsEditing] = useState(false); // Editing mode
 
-    const [isModalOpen, setModalOpen] = useState(false);
     const [isDeleteModalOpen, setDeleteModalOpen] = useState(false); // Controls delete confirmation
-
     const [toDeleteId, setToDeleteId] = useState(null); // Tracks ID to delete
 
-    const apiHandler =  useMemo(() => new APIHandler(), []);
+    const apiHandler = useMemo(() => new APIHandler(), []);
 
     // Fetch inventory data from API
     // Function to fetch inventory data
@@ -21,8 +22,27 @@ const Inventory = () => {
         setIsLoading(true); // Show loading indicator
         try {
             const response = await apiHandler.getInventoryData();
-            console.log("Inventory Data Received:", response.data); // Debugging
-            setInventoryData(response.data); // Set inventory table data
+            // console.log("Inventory Data Received:", response.data); // Debugging
+            // setInventoryData(response.data); // Set inventory table data
+
+            // Format expiration_date to include time (local)
+        const formattedData = response.data.map((item) => {
+            if (item.expiration_date) {
+                const expirationDateObj = new Date(item.expiration_date);
+                const offset = expirationDateObj.getTimezoneOffset() * 60000; // Convert offset to milliseconds
+                const localDate = new Date(expirationDateObj.getTime() - offset); // Adjust to local time
+                item.expiration_date = localDate.toISOString().slice(0, 16); // Convert to YYYY-MM-DDTHH:mm
+            }
+
+            return item; // Return updated inventory item with formatted expiration_date
+        });
+
+
+
+        console.log("Formatted Inventory Data:", formattedData);
+        setInventoryData(formattedData); // Set updated inventory data
+
+
         } catch (error) {
             console.error("Error fetching inventory data:", error);
         } finally {
@@ -30,25 +50,41 @@ const Inventory = () => {
         }
     }, [apiHandler]);
 
-
     // UseEffect to load data on component mount
-    useEffect(() => {
-        const fetchData = async () => {
-            await loadInventoryData(); // Explicitly wait for the data loading
-        };
+useEffect(() => {
+    (async () => {
+        try {
+            await loadInventoryData(); // Await the async call
+        } catch (error) {
+            console.error("Error during initial data load:", error);
+        }
+    })();
+}, [loadInventoryData]); // Runs once on component mount
+    // Handle adding a new inventory
+    const handleAdd = () => {
+        setIsEditing(false); // Open modal in creating mode
+        setSelectedInventory(null); // No selected inventory
+        setModalOpen(true); // Open the modal
+    };
 
-        fetchData(); // Execute fetch logic in a wrapper function
-    }, [loadInventoryData]); // Runs once on component mount
+// Toggle modal open/close and set editing state
+    const handleEdit = (inventory) => {
+        console.log("Editing Inventory:", inventory);
 
+        setIsEditing(true);
+        setSelectedInventory(inventory); // Set inventory data to be edited
+        setModalOpen(true); // Open the modal
+    };
 
     // Toggle modal's open/close state
     const toggleModal = () => {
         setModalOpen((prev) => !prev);
+        if (!isModalOpen) {
+            setIsEditing(false); // Reset editing state when closing
+            setSelectedInventory(null); // Clear inventory being edited
+        }
     };
 
-    const handleEdit = (id) => {
-        alert(`Editing inventory with ID: ${id}`);
-    };
 
     /*const handleDelete = (id) => {
         alert(`Deleting inventory with ID: ${id}`);
@@ -71,7 +107,7 @@ const Inventory = () => {
             await apiHandler.deleteInventory(id); // Delete the inventory
             alert(`Inventory with ID ${id} deleted successfully!`);
             closeDeleteModal();
-            loadInventoryData(); // Refresh the table after deletion
+            await loadInventoryData(); // Refresh the table after deletion
         } catch (error) {
             console.error("Error deleting inventory:", error);
             alert("Failed to delete inventory. Please try again.");
@@ -87,8 +123,8 @@ const Inventory = () => {
                 </div>
                 <div className="flex items-center">
                     <div>
-          <AdminDropdown /> {/* Use the new dropdown */}
-        </div>
+                        <AdminDropdown/> {/* Use the new dropdown */}
+                    </div>
                 </div>
             </div>
 
@@ -107,17 +143,24 @@ const Inventory = () => {
 
                 <button
                     className="bg-purple-700 text-white px-4 py-2 rounded"
-                    onClick={toggleModal} // Open the modal
+                    onClick={handleAdd} // Open the modal
                 >
                     Add Inventory
                 </button>
             </div>
-          
-            {/* Render Modal */}
-            <CreateInventory isOpen={isModalOpen} onClose={toggleModal}
-            refreshInventory={loadInventoryData}
-            />
 
+            {/* Render Modal */}
+            {/*<CreateInventory isOpen={isModalOpen} onClose={toggleModal}
+            refreshInventory={loadInventoryData}
+            />*/}
+            {isModalOpen && (
+                <CreateInventory
+                    isOpen={isModalOpen}
+                    onClose={toggleModal}
+                    refreshInventory={loadInventoryData}
+                    isEditing={isEditing} // Pass editing state
+                    inventoryData={selectedInventory} // Pass the selected inventory for editing
+                />)}
 
             {/* Table */}
             <div className="mt-4">
@@ -143,33 +186,43 @@ const Inventory = () => {
                             </thead>
                             <tbody>
                             {inventoryData.length > 0 ? (
-                                inventoryData.map((item, index) => (
-                                    <tr key={item.inventory_id} className="hover:bg-gray-100 transition-colors">
+                                inventoryData.map((inventory, index) => (
+                                    <tr key={inventory.inventory_id} className="hover:bg-gray-100 transition-colors">
                                         <td className="border px-4 py-2 text-center">{index + 1}</td>
                                         {/* # column */}
-                                        <td className="border px-4 py-2 text-center">{item.inventory_id}</td>
-                                        <td className="border px-4 py-2 text-center">{item.product_id || 'N/A'}</td>
-                                        <td className="border px-4 py-2 text-center">{item.batch_number || 'N/A'}</td>
-                                        <td className="border px-4 py-2 text-center">{item.purchase_order_id || 'N/A'}</td>
-                                        <td className="border px-4 py-2 text-center">{item.stock_in}</td>
-                                        <td className="border px-4 py-2 text-center">{item.stock_out}</td>
+                                        <td className="border px-4 py-2 text-center">{inventory.inventory_id}</td>
+                                        <td className="border px-4 py-2 text-center">{inventory.product_id || 'N/A'}</td>
+                                        <td className="border px-4 py-2 text-center">{inventory.batch_number || 'N/A'}</td>
+                                        <td className="border px-4 py-2 text-center">{inventory.purchase_order_id || 'N/A'}</td>
+                                        <td className="border px-4 py-2 text-center">{inventory.stock_in}</td>
+                                        <td className="border px-4 py-2 text-center">{inventory.stock_out}</td>
                                         <td className="border px-4 py-2 text-center">
-                                            {item.expiration_date  ? new Date(item.expiration_date).toDateString() : 'N/A' }
+                                            {inventory.expiration_date
+    ? new Date(inventory.expiration_date).toLocaleString("en-US", {
+        month: "short", // Abbreviated month (e.g., "Mar")
+        day: "2-digit", // Numeric day (e.g., "20")
+        year: "numeric", // Full numeric year (e.g., "2025")
+        hour: "numeric", // Hour (e.g., "3")
+        minute: "numeric", // Minute (e.g., "34")
+        hour12: true, // AM/PM format
+      })
+    : "N/A"} {/* If no expiration_date, display 'N/A' */}
+
                                         </td>
-                                        <td className="border px-4 py-2 text-center">{item.stock_available}</td>
+                                        <td className="border px-4 py-2 text-center">{inventory.stock_available}</td>
                                         <td className="border px-4 py-2 text-center">
                                             <div className="flex justify-center space-x-2">
                                                 {/* Edit Button Icon */}
                                                 <button
                                                     className="bg-blue-500 text-white p-2 w-8 rounded-lg hover:bg-blue-700"
-                                                    onClick={() => handleEdit(item.inventory_id)}
+                                                    onClick={() => handleEdit(inventory)}
                                                 >
                                                     <i className="fas fa-pencil-alt"></i>
                                                 </button>
                                                 {/* Delete Button Icon */}
                                                 <button
                                                     className="bg-red-500 text-white p-2 rounded-lg w-8 hover:bg-red-700"
-                                                    onClick={() => openDeleteModal(item.inventory_id)}
+                                                    onClick={() => openDeleteModal(inventory.inventory_id)}
 
                                                 >
                                                     <i className="fas fa-trash"></i>
