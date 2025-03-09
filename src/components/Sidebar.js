@@ -18,7 +18,7 @@ const Sidebar = ({ activePage }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="w-1/5 bg-gradient-to-b from-blue-500 to-purple-700 text-white p-4 h-full flex flex-col">
+    <div className="w-1/5 bg-gradient-to-b from-cyan-800 to-violet-900 text-white p-4 h-full flex flex-col">
       {/* Top Section */}
       <div>
         {/* Logo and Title */}
